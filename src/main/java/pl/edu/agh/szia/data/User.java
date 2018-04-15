@@ -3,6 +3,7 @@ package pl.edu.agh.szia.data;
 import jade.core.AID;
 import pl.edu.agh.szia.agent.SellerAgent;
 import pl.edu.agh.szia.auction.Auction;
+import pl.edu.agh.szia.utils.AuctionManager;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -27,5 +28,7 @@ public class User {
 
         agent.setTargetAuction(auction);
         ownedAuctions.put(auction, agent.getAID());
+
+        AuctionManager.instanceOf().addAuction(auction);
     }
 }
