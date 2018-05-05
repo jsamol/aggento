@@ -4,7 +4,9 @@ import jade.core.AID;
 import pl.edu.agh.szia.data.Product;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class Auction {
@@ -12,14 +14,19 @@ public class Auction {
     private AID ownerAID;
     private String winningBidder;
     private List<AID> participants;
+    private Integer id;
+    private Long endTime;
 
     private Product product;
     private BigDecimal currentPrice;
 
-    public Auction(AID ownerAID, Product product, BigDecimal currentPrice) {
+    public Auction(AID ownerAID, Product product, BigDecimal currentPrice, Integer id, Long endTime) {
         this.ownerAID = ownerAID;
         this.product = product;
         this.currentPrice = currentPrice;
+        this.id = id;
+        this.endTime = endTime;
+        this.winningBidder = "";
 
         participants = new ArrayList<AID>();
     }
@@ -54,5 +61,33 @@ public class Auction {
 
     public void setWinningBidder(String winningBidder) {
         this.winningBidder = winningBidder;
+    }
+
+    public List<AID> getParticipants() {
+        return participants;
+    }
+
+    public void setParticipants(List<AID> participants) {
+        this.participants = participants;
+    }
+
+    public void addPartticipant(AID participant){
+        this.participants.add(participant);
+    }
+
+    public void printAuction(){
+        System.out.println("ID: " + this.id);
+        System.out.println("ItemName: " + this.product.getName());
+        System.out.println("CurrentPrice: " + this.currentPrice);
+        System.out.println("Currently winning bidder: " + this.winningBidder);
+        System.out.println("Auction ends: " + new Date(this.endTime));
+    }
+
+    public Long getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(Long endTime) {
+        this.endTime = endTime;
     }
 }

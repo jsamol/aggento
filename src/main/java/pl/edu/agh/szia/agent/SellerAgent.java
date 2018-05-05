@@ -1,8 +1,10 @@
 package pl.edu.agh.szia.agent;
 
+import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
+import jade.core.behaviours.WakerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import pl.edu.agh.szia.auction.Auction;
@@ -12,6 +14,8 @@ import pl.edu.agh.szia.data.User;
 import javax.print.attribute.standard.MediaSize;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Timestamp;
+import java.util.Iterator;
 
 public class SellerAgent extends UserAgent {
 
@@ -29,44 +33,76 @@ public class SellerAgent extends UserAgent {
         setTargetAuction((Auction)args[2]);
         getTargetAuction().setOwnerAID(getAID());
 
-        addBehaviour(new UpdateBestBid(this));
+        addBehaviour(new UpdateBestBid());
+        addBehaviour(new AddBidder());
+        addBehaviour(new EndAuction(this, getTargetAuction().getEndTime() - new Timestamp(System.currentTimeMillis()).getTime()));
     }
 
     @Override
     protected void takeDown(){
         System.out.println("Auctioneer " + getAID().getName() + " terminating.");
     }
-}
 
-class UpdateBestBid extends CyclicBehaviour {
-    UserAgent myAgent;
-    private MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
+    class AddBidder extends CyclicBehaviour {
+        private MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
 
-    public UpdateBestBid(UserAgent userAgent){
-        super(userAgent);
-        this.myAgent = userAgent;
-    }
-
-    public void action(){
-        ACLMessage msg = myAgent.receive(mt);
-        if(msg != null){
-            BigDecimal bid = new BigDecimal(msg.getContent());
-            ACLMessage reply = msg.createReply();
-
-            if(bid.compareTo(myAgent.getTargetAuction().getCurrentPrice()) > 0){
-                System.out.println("Raising current price for: " + myAgent.getTargetAuction().getProduct().getName());
-                System.out.println("Old price: " + myAgent.getTargetAuction().getCurrentPrice());
-                myAgent.getTargetAuction().raisePrice(bid);
-                System.out.println("New price: " + myAgent.getTargetAuction().getCurrentPrice());
-                myAgent.getTargetAuction().setWinningBidder(msg.getSender().getName());
-                System.out.println("Winning bidder: "  + myAgent.getTargetAuction().getWinningBidder());
-                reply.setPerformative(ACLMessage.AGREE);
+        public void action() {
+            ACLMessage msg = myAgent.receive(mt);
+            if(msg != null){
+                System.out.println("Adding participant " + msg.getSender().getName());
+                getTargetAuction().addPartticipant(msg.getSender());
+                ACLMessage reply = msg.createReply();
+                reply.setPerformative(ACLMessage.INFORM);
+                reply.setContent(getTargetAuction().getCurrentPrice().toString());
+                myAgent.send(reply);
             }
-
-            reply.setPerformative(ACLMessage.CANCEL);
-            myAgent.send(reply);
+            else {
+                block();
+            }
         }
-        else
-            block();
+    }
+
+    class NotifyBidders extends OneShotBehaviour {
+        public void action(){
+            ACLMessage notification = new ACLMessage(ACLMessage.INFORM);
+            notification.setContent(getTargetAuction().getCurrentPrice().toString());
+            for(AID participantAID: getTargetAuction().getParticipants()){
+                notification.addReceiver(participantAID);
+            }
+            myAgent.send(notification);
+        }
+    }
+
+    class UpdateBestBid extends CyclicBehaviour {
+        private MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
+
+        public void action(){
+            ACLMessage msg = myAgent.receive(mt);
+            if(msg != null){
+                BigDecimal bid = new BigDecimal(msg.getContent());
+                if(bid.compareTo(getTargetAuction().getCurrentPrice()) > 0){
+                    System.out.println("Raising current price for: " + getTargetAuction().getProduct().getName());
+                    System.out.println("Old price: " + getTargetAuction().getCurrentPrice());
+                    getTargetAuction().raisePrice(bid);
+                    System.out.println("New price: " + getTargetAuction().getCurrentPrice());
+                    getTargetAuction().setWinningBidder(msg.getSender().getName());
+                    System.out.println("Winning bidder: "  + getTargetAuction().getWinningBidder());
+                    myAgent.addBehaviour(new NotifyBidders());
+                }
+            }
+            else
+                block();
+        }
+    }
+
+    class EndAuction extends WakerBehaviour{
+        public EndAuction(Agent agent, long timeout){
+            super(agent, timeout);
+        }
+        protected void onWake() {
+            System.out.println("Auction ended");
+            System.out.println("The winner is " + getTargetAuction().getWinningBidder());
+        }
     }
 }
+

@@ -1,11 +1,8 @@
 package pl.edu.agh.szia.data;
 
 import jade.core.AID;
-import pl.edu.agh.szia.agent.SellerAgent;
 import pl.edu.agh.szia.auction.Auction;
-import pl.edu.agh.szia.utils.AuctionManager;
 
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,5 +25,13 @@ public class User {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public void addOwnedAuction(Auction auction){
+        ownedAuctions.put(auction, auction.getOwnerAID());
+    }
+
+    public void addParticipatedAuction(Auction auction, AID AID){
+        participatedAuctions.put(auction, AID);
     }
 }

@@ -1,16 +1,17 @@
 package pl.edu.agh.szia.agent;
 
 import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.OneShotBehaviour;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
 import pl.edu.agh.szia.auction.Auction;
-import pl.edu.agh.szia.data.Product;
-import pl.edu.agh.szia.data.User;
 
 import java.math.BigDecimal;
-import java.text.DecimalFormat;
+
 
 public class BuyerAgent extends UserAgent {
     private BigDecimal limit;
+    private static final int RAISE_OFFER_VAL = 1;
 
     @Override
     protected void setup() {
@@ -21,8 +22,10 @@ public class BuyerAgent extends UserAgent {
         System.out.println("Bidder " + getAID().getName() + " is ready.");
 
         setTargetAuction(getTargetAuction());
+        getTargetAuction().addPartticipant(getAID());
 
-        addBehaviour(new Bid(this));
+        addBehaviour(new Bid());
+        addBehaviour(new SignUpToAuction());
     }
 
     @Override
@@ -37,34 +40,41 @@ public class BuyerAgent extends UserAgent {
     public void setLimit(BigDecimal limit) {
         this.limit = limit;
     }
-}
 
-class Bid extends CyclicBehaviour{
-    BuyerAgent myAgent;
-
-    public Bid(BuyerAgent userAgent){
-        super(userAgent);
-        this.myAgent = userAgent;
+    class SignUpToAuction extends OneShotBehaviour{
+        public void action(){
+            System.out.println(getAID().getName() + " singing up for auction");
+            ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+            msg.addReceiver(getTargetAuction().getOwnerAID());
+            myAgent.send(msg);
+        }
     }
 
-    public void action(){
-        if(myAgent.getTargetAuction().getCurrentPrice().compareTo(myAgent.getLimit()) < 1 &&
-                (myAgent.getTargetAuction().getWinningBidder() == null ||
-                        !myAgent.getTargetAuction().getWinningBidder().equals(myAgent.getName()))){
-            System.out.println("Sending bid from " + myAgent.getName());
-            ACLMessage msg = new ACLMessage(ACLMessage.PROPOSE);
-            msg.addReceiver(myAgent.getTargetAuction().getOwnerAID());
-            BigDecimal offer = BigDecimal.valueOf(myAgent.getTargetAuction().getCurrentPrice().intValue() + 5);
-            msg.setContent(offer.toString());
-            myAgent.send(msg);
+    class Bid extends CyclicBehaviour{
+        private MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
 
-            ACLMessage reply = myAgent.receive();
-            if(reply != null){
-                System.out.println("Accepted");
+        public void action(){
+            ACLMessage msg = myAgent.receive(mt);
+            if(msg != null) {
+                BigDecimal currentPrice = new BigDecimal(msg.getContent());
+                if (currentPrice.compareTo(getLimit()) < 1 &&
+                        !getTargetAuction().getWinningBidder().equals(getName())) {
+                    BigDecimal offer = BigDecimal.valueOf(
+                            Integer.min(currentPrice.intValue() + RAISE_OFFER_VAL, getLimit().intValue()));
+
+                    System.out.println(getName() + " bid " + offer +
+                            " for " + getTargetAuction().getProduct().getName());
+
+                    ACLMessage offerMsg = new ACLMessage(ACLMessage.PROPOSE);
+                    offerMsg.addReceiver(msg.getSender());
+                    offerMsg.setContent(offer.toString());
+
+                    myAgent.send(offerMsg);
+
+                }
             }
-            else{
+            else
                 block();
-            }
         }
     }
 }
