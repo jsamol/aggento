@@ -9,8 +9,16 @@ public abstract class UserAgent extends Agent {
     private User user;
     private Auction targetAuction;
 
-    UserAgent(User user) {
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
         this.user = user;
+    }
+
+    public Auction getTargetAuction() {
+        return targetAuction;
     }
 
     public void setTargetAuction(Auction targetAuction) {

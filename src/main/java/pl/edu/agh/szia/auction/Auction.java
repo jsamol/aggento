@@ -10,6 +10,7 @@ import java.util.List;
 public class Auction {
 
     private AID ownerAID;
+    private String winningBidder;
     private List<AID> participants;
 
     private Product product;
@@ -37,5 +38,21 @@ public class Auction {
         }
 
         currentPrice = bidValue;
+    }
+
+    public AID getOwnerAID() {
+        return ownerAID;
+    }
+
+    public void setOwnerAID(AID ownerAID) {
+        this.ownerAID = ownerAID;
+    }
+
+    public String getWinningBidder() {
+        return winningBidder;
+    }
+
+    public void setWinningBidder(String winningBidder) {
+        this.winningBidder = winningBidder;
     }
 }

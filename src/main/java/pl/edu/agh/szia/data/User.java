@@ -22,13 +22,11 @@ public class User {
         participatedAuctions = new HashMap<Auction, AID>();
     }
 
-    public void startNewAuction(Product product, BigDecimal initialPrice) {
-        final SellerAgent agent = new SellerAgent(this);
-        final Auction auction = new Auction(agent.getAID(), product, initialPrice);
+    public String getUsername() {
+        return username;
+    }
 
-        agent.setTargetAuction(auction);
-        ownedAuctions.put(auction, agent.getAID());
-
-        AuctionManager.instanceOf().addAuction(auction);
+    public void setUsername(String username) {
+        this.username = username;
     }
 }
