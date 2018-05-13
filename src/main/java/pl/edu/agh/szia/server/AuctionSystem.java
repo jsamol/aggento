@@ -21,28 +21,33 @@ import java.util.Scanner;
 public class AuctionSystem {
     private static final String SERVER_AGENT_PATH = "pl.edu.agh.szia.server.agent.server.ServerAgent";
 
-    private static ContainerController mainContainer;
-    private static User currentUser;
-    private static Map<String, User> users = new HashMap<>();
-    private static Auction currentAuction;
-    private static Map<Integer, Auction> auctions = new HashMap<>();
-    private static Integer newAuctionID = 1;
-    private static Integer currentAuctionId = 1;
-    private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private ContainerController mainContainer;
+    private User currentUser;
+    private Map<String, User> users = new HashMap<>();
+    private Auction currentAuction;
+    private Map<Integer, Auction> auctions = new HashMap<>();
+    private Integer newAuctionID = 1;
+    private Integer currentAuctionId = 1;
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public static void main(String [] args){
+        AuctionSystem auctionSystem = new AuctionSystem();
+        auctionSystem.run();
+    }
+
+    private void run() {
         jade.core.Runtime runtime = jade.core.Runtime.instance();
         Profile profile = new ProfileImpl();
         mainContainer = runtime.createMainContainer(profile);
         try {
-            AgentController agentController = mainContainer.createNewAgent(Configuration.SERVER_AGENT_NAME, SERVER_AGENT_PATH, null);
+            AgentController agentController = mainContainer.createNewAgent(Configuration.SERVER_AGENT_NAME, SERVER_AGENT_PATH, new Object[] { this });
             agentController.start();
         } catch (StaleProxyException e) {
             e.printStackTrace();
         }
     }
 
-    public static void createAuctionInteractive(){
+    public void createAuctionInteractive(){
         System.out.println("Please enter name of the item to sell: ");
         Scanner reader = new Scanner(System.in);
         String itemName = reader.nextLine();
@@ -63,7 +68,30 @@ public class AuctionSystem {
 
     }
 
-    public static void createSellerAgent(String itemName, Long endTime){
+    public void bidInteractive(){
+        System.out.println("Please enter limit: ");
+        Scanner reader = new Scanner(System.in);
+        String limit = reader.nextLine();
+
+        createBuyerAgent(new BigDecimal(limit));
+    }
+
+    public void listAuctions(){
+        for(Auction auction: auctions.values()){
+            auction.printAuction();
+        }
+    }
+
+    public void setCurrentAuction(){
+        System.out.println("Please enter auction id: ");
+        Scanner reader = new Scanner(System.in);
+        String auctionId = reader.nextLine();
+
+        currentAuctionId = Integer.parseInt(auctionId);
+        currentAuction = auctions.get(currentAuctionId);
+    }
+
+    private void createSellerAgent(String itemName, Long endTime){
         try {
             currentAuction = new Auction(null, new Product(itemName), new BigDecimal(1), newAuctionID, endTime);
             AgentController ag = mainContainer.createNewAgent("sellerAgent" + newAuctionID,
@@ -74,15 +102,7 @@ public class AuctionSystem {
         }
     }
 
-    public static void bidInteractive(){
-        System.out.println("Please enter limit: ");
-        Scanner reader = new Scanner(System.in);
-        String limit = reader.nextLine();
-
-        createBuyerAgent(new BigDecimal(limit));
-    }
-
-    public static void createBuyerAgent(BigDecimal limit){
+    private void createBuyerAgent(BigDecimal limit){
         try {
             AgentController ag = mainContainer.createNewAgent(currentUser.getUsername() + currentAuctionId.toString(),
                     "pl.edu.agh.szia.server.agent.user.BuyerAgent", new Object[] {currentAuction, limit});
@@ -90,20 +110,5 @@ public class AuctionSystem {
         } catch (StaleProxyException e) {
             e.printStackTrace();
         }
-    }
-
-    public static void listAuctions(){
-        for(Auction auction: auctions.values()){
-            auction.printAuction();
-        }
-    }
-
-    public static void setCurrentAuction(){
-        System.out.println("Please enter auction id: ");
-        Scanner reader = new Scanner(System.in);
-        String auctionId = reader.nextLine();
-
-        currentAuctionId = Integer.parseInt(auctionId);
-        currentAuction = auctions.get(currentAuctionId);
     }
 }

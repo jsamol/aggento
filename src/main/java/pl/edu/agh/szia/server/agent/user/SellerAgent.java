@@ -1,4 +1,4 @@
-package pl.edu.agh.szia.server.agent;
+package pl.edu.agh.szia.server.agent.user;
 
 import jade.core.AID;
 import jade.core.Agent;
