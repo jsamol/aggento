@@ -1,9 +1,11 @@
 package pl.edu.agh.szia.client.agent.behaviour;
 
+import jade.core.AID;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.StaleProxyException;
 import pl.edu.agh.szia.client.utils.ConsoleUtil;
+import pl.edu.agh.szia.utils.Configuration;
 import pl.edu.agh.szia.utils.command.CommandMessage;
 import pl.edu.agh.szia.utils.command.CommandType;
 
@@ -11,6 +13,20 @@ import java.io.IOException;
 import java.util.Scanner;
 
 public class ConsoleCyclicBehaviour extends CyclicBehaviour {
+
+    private final AID serverAid;
+    private String clientUsername;
+
+    public ConsoleCyclicBehaviour(String clientUsername) {
+        this.clientUsername = clientUsername;
+        this.serverAid = new AID(Configuration.getServerAgentGuid(), AID.ISGUID);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        signInWithUsername();
+    }
 
     @Override
     public void action() {
@@ -48,6 +64,19 @@ public class ConsoleCyclicBehaviour extends CyclicBehaviour {
         }
     }
 
+    private void signInWithUsername() {
+        final ACLMessage message = new ACLMessage(ACLMessage.REQUEST);
+
+        CommandMessage commandMessage = new CommandMessage(CommandType.SIGN_IN, clientUsername);
+
+        try {
+            message.setContentObject(commandMessage);
+            sendMessage(message);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void listAuctions() {
         final ACLMessage message = new ACLMessage(ACLMessage.REQUEST);
 
@@ -55,10 +84,15 @@ public class ConsoleCyclicBehaviour extends CyclicBehaviour {
 
         try {
             message.setContentObject(commandMessage);
-            myAgent.addBehaviour(new SendCommandToServerBehaviour(message));
+            sendMessage(message);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void sendMessage(ACLMessage message) {
+        message.addReceiver(serverAid);
+        myAgent.send(message);
     }
 
     private void killContainer() {
