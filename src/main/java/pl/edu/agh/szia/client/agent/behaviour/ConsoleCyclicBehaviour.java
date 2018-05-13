@@ -10,6 +10,7 @@ import pl.edu.agh.szia.utils.command.CommandMessage;
 import pl.edu.agh.szia.utils.command.CommandType;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Scanner;
 
 public class ConsoleCyclicBehaviour extends CyclicBehaviour {
@@ -43,18 +44,20 @@ public class ConsoleCyclicBehaviour extends CyclicBehaviour {
 
         switch (input[0].toLowerCase()) {
             case "c":
-                if (interactive)
-//                        createAuctionInteractive();
-                    break;
+                if (interactive) {
+                    createAuctionInteractive();
+                }
+                break;
             case "b":
-                if (interactive)
-//                        bidInteractive();
-                    break;
+                if (interactive) {
+                        bidInteractive();
+                }
+                break;
             case "la":
                     listAuctions();
                 break;
             case "sa":
-//                    setCurrentAuction();
+                    setActiveAuction();
                 break;
             case "q":
                 ConsoleUtil.printExitMessage();
@@ -66,22 +69,50 @@ public class ConsoleCyclicBehaviour extends CyclicBehaviour {
 
     private void signInWithUsername() {
         final ACLMessage message = new ACLMessage(ACLMessage.REQUEST);
+        final CommandMessage commandMessage = new CommandMessage(CommandType.SIGN_IN, clientUsername);
+        appendMessageWithCommandMessageAndSend(message, commandMessage);
+    }
 
-        CommandMessage commandMessage = new CommandMessage(CommandType.SIGN_IN, clientUsername);
+    private void createAuctionInteractive() {
+        System.out.println("Please enter name of the item to sell: ");
+        Scanner reader = new Scanner(System.in);
+        String itemName = reader.nextLine();
 
-        try {
-            message.setContentObject(commandMessage);
-            sendMessage(message);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        System.out.println("Please enter date when auction should end [yyyy-MM-dd HH:mm:ss]: ");
+        String endDateStr = reader.nextLine();
+
+        final ACLMessage message = new ACLMessage(ACLMessage.REQUEST);
+        final CommandMessage commandMessage = new CommandMessage(CommandType.CREATE_AUCTION, clientUsername, itemName, endDateStr);
+        appendMessageWithCommandMessageAndSend(message, commandMessage);
+    }
+
+    private void bidInteractive(){
+        System.out.println("Please enter limit: ");
+        Scanner reader = new Scanner(System.in);
+        String limit = reader.nextLine();
+
+        final ACLMessage message = new ACLMessage(ACLMessage.REQUEST);
+        final CommandMessage commandMessage = new CommandMessage(CommandType.BID, clientUsername, limit);
+        appendMessageWithCommandMessageAndSend(message, commandMessage);
     }
 
     private void listAuctions() {
         final ACLMessage message = new ACLMessage(ACLMessage.REQUEST);
+        final CommandMessage commandMessage = new CommandMessage(CommandType.LIST_AUCTIONS);
+        appendMessageWithCommandMessageAndSend(message, commandMessage);
+    }
 
-        CommandMessage commandMessage = new CommandMessage(CommandType.LIST_AUCTIONS);
+    private void setActiveAuction() {
+        System.out.println("Please enter auction id: ");
+        Scanner reader = new Scanner(System.in);
+        String auctionId = reader.nextLine();
 
+        final ACLMessage message = new ACLMessage(ACLMessage.REQUEST);
+        final CommandMessage commandMessage = new CommandMessage(CommandType.SET_ACTIVE_AUCTION, clientUsername, auctionId);
+        appendMessageWithCommandMessageAndSend(message, commandMessage);
+    }
+
+    private void appendMessageWithCommandMessageAndSend(ACLMessage message, CommandMessage commandMessage) {
         try {
             message.setContentObject(commandMessage);
             sendMessage(message);
@@ -93,6 +124,15 @@ public class ConsoleCyclicBehaviour extends CyclicBehaviour {
     private void sendMessage(ACLMessage message) {
         message.addReceiver(serverAid);
         myAgent.send(message);
+        waitForResponse();
+    }
+
+    private void waitForResponse() {
+        ACLMessage response = myAgent.blockingReceive();
+        if (response != null) {
+            String responseContent = response.getContent();
+            System.out.println(responseContent);
+        }
     }
 
     private void killContainer() {

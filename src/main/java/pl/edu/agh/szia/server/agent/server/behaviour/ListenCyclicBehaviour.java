@@ -8,6 +8,8 @@ import pl.edu.agh.szia.utils.command.CommandMessage;
 
 public class ListenCyclicBehaviour extends CyclicBehaviour {
 
+    private static final String DEFAULT_MESSAGE = "Command unrecognized.";
+
     private AuctionSystem auctionSystem;
 
     public ListenCyclicBehaviour(AuctionSystem auctionSystem) {
@@ -19,7 +21,9 @@ public class ListenCyclicBehaviour extends CyclicBehaviour {
     public void action() {
         ACLMessage message = myAgent.blockingReceive();
         if (message != null) {
-            handleCommandMessage(getCommandMessageFromACLMessage(message));
+            final ACLMessage response = handleCommandMessage(getCommandMessageFromACLMessage(message));
+            response.addReceiver(message.getSender());
+            myAgent.send(response);
         }
     }
 
@@ -33,22 +37,41 @@ public class ListenCyclicBehaviour extends CyclicBehaviour {
         return null;
     }
 
-    private void handleCommandMessage(CommandMessage commandMessage) {
+    private ACLMessage handleCommandMessage(CommandMessage commandMessage) {
         if (commandMessage != null) {
+            String[] args = commandMessage.getArguments();
             switch (commandMessage.getType()) {
                 case SIGN_IN:
-                    break;
+                    if (args.length == 0) {
+                        break;
+                    }
+                    return auctionSystem.registerUser(args[0]);
                 case CREATE_AUCTION:
-                    break;
+                    if (args.length < 3) {
+                        break;
+                    }
+                    return auctionSystem.createAuction(args[0], args[1], args[2]);
                 case BID:
-                    break;
+                    if (args.length < 2) {
+                        break;
+                    }
+                    return auctionSystem.bid(args[0], args[1]);
                 case LIST_AUCTIONS:
-                    break;
-                case SET_CURRENT_AUCTION:
-                    break;
-                default:
-                    break;
+                    return auctionSystem.listAuctions();
+                case SET_ACTIVE_AUCTION:
+                    if (args.length < 2) {
+                        break;
+                    }
+                    return auctionSystem.setActiveAuction(args[0], args[1]);
             }
         }
+
+        return createDefaultMessage();
+    }
+
+    private ACLMessage createDefaultMessage() {
+        final ACLMessage message = new ACLMessage(ACLMessage.INFORM);
+        message.setContent(DEFAULT_MESSAGE);
+        return message;
     }
 }

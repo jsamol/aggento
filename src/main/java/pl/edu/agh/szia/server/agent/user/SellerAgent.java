@@ -26,7 +26,7 @@ public class SellerAgent extends UserAgent {
         System.out.println("Auctioneer " + getAID().getName() + " is ready.");
 
         System.out.println("It is selling " + getUser().getUsername() + "'s: " + itemName + " item.");
-        setTargetAuction((Auction)args[2]);
+        setTargetAuction(user.getActiveAuction());
         getTargetAuction().setOwnerAID(getAID());
 
         addBehaviour(new UpdateBestBid());

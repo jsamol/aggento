@@ -9,6 +9,7 @@ import java.util.Map;
 public class User {
 
     private String username;
+    private Auction activeAuction;
     private final Map<Auction, AID> ownedAuctions;
     private final Map<Auction, AID> participatedAuctions;
 
@@ -25,6 +26,14 @@ public class User {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public Auction getActiveAuction() {
+        return activeAuction;
+    }
+
+    public void setActiveAuction(Auction activeAuction) {
+        this.activeAuction = activeAuction;
     }
 
     public void addOwnedAuction(Auction auction){

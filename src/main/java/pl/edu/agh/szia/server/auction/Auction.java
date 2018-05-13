@@ -30,6 +30,15 @@ public class Auction {
         participants = new ArrayList<AID>();
     }
 
+    @Override
+    public String toString() {
+        return "ID: " + this.id + "\n" +
+                "ItemName: " + this.product.getName() + "\n" +
+                "CurrentPrice: " + this.currentPrice + "\n" +
+                "Currently winning bidder: " + this.winningBidder + "\n" +
+                "Auction ends: " + new Date(this.endTime) + "\n";
+    }
+
     public Product getProduct() {
         return product;
     }
@@ -88,5 +97,9 @@ public class Auction {
 
     public void setEndTime(Long endTime) {
         this.endTime = endTime;
+    }
+
+    public Integer getId() {
+        return id;
     }
 }

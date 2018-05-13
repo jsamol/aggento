@@ -4,22 +4,18 @@ import java.io.Serializable;
 
 public class CommandMessage implements Serializable {
     private final CommandType type;
-    private final String argument;
+    private final String[] arguments;
 
-    public CommandMessage(CommandType type) {
-        this(type, null);
-    }
-
-    public CommandMessage(CommandType type, String argument) {
+    public CommandMessage(CommandType type, String... arguments) {
         this.type = type;
-        this.argument = argument;
+        this.arguments = arguments;
     }
 
     public CommandType getType() {
         return type;
     }
 
-    public String getArguments() {
-        return argument;
+    public String[] getArguments() {
+        return arguments;
     }
 }

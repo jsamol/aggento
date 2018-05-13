@@ -2,6 +2,7 @@ package pl.edu.agh.szia.server;
 
 import jade.core.Profile;
 import jade.core.ProfileImpl;
+import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
@@ -21,13 +22,19 @@ import java.util.Scanner;
 public class AuctionSystem {
     private static final String SERVER_AGENT_PATH = "pl.edu.agh.szia.server.agent.server.ServerAgent";
 
+    private static final String USER_DOES_NOT_EXIST = "User does not exist.";
+    private static final String USERNAME_ALREADY_TAKEN_ERROR_PATTERN = "Username %s is already taken.";
+    private static final String USERNAME_REGISTERED_PATTERN = "Welcome, %s!";
+
+    private static final String AUCTION_CREATED = "A new auction has been created.";
+    private static final String AUCTION_BID_SUCCESSFUL = "Bid successful.";
+    private static final String AUCTION_DOES_NOT_EXIST = "Auction with a given id does not exist.";
+    private static final String AUCTION_SET_ACTIVE_SUCCESSFUL_PATTERN = "Active auction set to %s";
+
     private ContainerController mainContainer;
-    private User currentUser;
     private Map<String, User> users = new HashMap<>();
-    private Auction currentAuction;
     private Map<Integer, Auction> auctions = new HashMap<>();
     private Integer newAuctionID = 1;
-    private Integer currentAuctionId = 1;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public static void main(String [] args){
@@ -47,65 +54,118 @@ public class AuctionSystem {
         }
     }
 
-    public void createAuctionInteractive(){
-        System.out.println("Please enter name of the item to sell: ");
-        Scanner reader = new Scanner(System.in);
-        String itemName = reader.nextLine();
+    public ACLMessage registerUser(String username) {
+        ACLMessage response;
+        if (users.containsKey(username)) {
+            response = new ACLMessage(ACLMessage.REFUSE);
+            response.setContent(String.format(USERNAME_ALREADY_TAKEN_ERROR_PATTERN, username));
+        } else {
+            User user = new User(username);
+            users.put(username, user);
 
-        System.out.println("Please enter date when auction should end [yyyy-MM-dd HH:mm:ss]: ");
-        String endDateStr = reader.nextLine();
-
-        try{
-            Date endDate = dateFormat.parse(endDateStr);
-            createSellerAgent(itemName, endDate.getTime());
-            auctions.put(newAuctionID, currentAuction);
-            currentUser.addOwnedAuction(currentAuction);
-            newAuctionID += 1;
-
-        }catch (ParseException e){
-            e.printStackTrace();
+            response = new ACLMessage(ACLMessage.AGREE);
+            response.setContent(String.format(USERNAME_REGISTERED_PATTERN, username));
         }
 
+        return response;
     }
 
-    public void bidInteractive(){
-        System.out.println("Please enter limit: ");
-        Scanner reader = new Scanner(System.in);
-        String limit = reader.nextLine();
+    public ACLMessage createAuction(String username, String itemName, String endDateStr){
+        if (users.containsKey(username)) {
+            try {
+                User currentUser = users.get(username);
 
-        createBuyerAgent(new BigDecimal(limit));
+                Date endDate = dateFormat.parse(endDateStr);
+                Long endTime = endDate.getTime();
+
+                Auction currentAuction = new Auction(null, new Product(itemName), new BigDecimal(1), newAuctionID, endTime);
+                auctions.put(newAuctionID, currentAuction);
+                currentUser.addOwnedAuction(currentAuction);
+                currentUser.setActiveAuction(currentAuction);
+
+                createSellerAgent(currentUser, itemName, endTime);
+                newAuctionID += 1;
+
+                final ACLMessage response = new ACLMessage(ACLMessage.CONFIRM);
+                response.setContent(AUCTION_CREATED);
+                return response;
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        }
+
+        final ACLMessage response = new ACLMessage(ACLMessage.CANCEL);
+        response.setContent(USER_DOES_NOT_EXIST);
+        return response;
     }
 
-    public void listAuctions(){
+    public ACLMessage bid(String username, String limit){
+        final ACLMessage response;
+        if (!users.containsKey(username)) {
+            response = new ACLMessage(ACLMessage.CANCEL);
+            response.setContent(USER_DOES_NOT_EXIST);
+        }
+        else {
+            User currentUser = users.get(username);
+            createBuyerAgent(currentUser, new BigDecimal(limit));
+
+            response = new ACLMessage(ACLMessage.CONFIRM);
+            response.setContent(AUCTION_BID_SUCCESSFUL);
+        }
+
+        return response;
+    }
+
+    public ACLMessage listAuctions() {
+        StringBuilder stringBuilder = new StringBuilder();
         for(Auction auction: auctions.values()){
-            auction.printAuction();
+            stringBuilder.append(auction);
         }
+
+        final ACLMessage response = new ACLMessage(ACLMessage.INFORM);
+        response.setContent(stringBuilder.toString());
+
+        return response;
     }
 
-    public void setCurrentAuction(){
-        System.out.println("Please enter auction id: ");
-        Scanner reader = new Scanner(System.in);
-        String auctionId = reader.nextLine();
+    public ACLMessage setActiveAuction(String username, String auctionId){
+        final ACLMessage response;
 
-        currentAuctionId = Integer.parseInt(auctionId);
-        currentAuction = auctions.get(currentAuctionId);
+        int currentAuctionId = Integer.parseInt(auctionId);
+        if (!auctions.containsKey(currentAuctionId)) {
+            response = new ACLMessage(ACLMessage.CANCEL);
+            response.setContent(AUCTION_DOES_NOT_EXIST);
+        } else {
+            Auction auction = auctions.get(currentAuctionId);
+            if (!users.containsKey(username)) {
+                response = new ACLMessage(ACLMessage.CANCEL);
+                response.setContent(USER_DOES_NOT_EXIST);
+            } else {
+                User currentUser = users.get(username);
+                currentUser.setActiveAuction(auction);
+
+                response = new ACLMessage(ACLMessage.CONFIRM);
+                response.setContent(String.format(AUCTION_SET_ACTIVE_SUCCESSFUL_PATTERN, auctionId));
+            }
+        }
+
+        return response;
     }
 
-    private void createSellerAgent(String itemName, Long endTime){
+    private void createSellerAgent(User user, String itemName, Long endTime){
         try {
-            currentAuction = new Auction(null, new Product(itemName), new BigDecimal(1), newAuctionID, endTime);
             AgentController ag = mainContainer.createNewAgent("sellerAgent" + newAuctionID,
-                    "pl.edu.agh.szia.server.agent.user.SellerAgent", new Object[] {currentUser, itemName, currentAuction, endTime});
+                    "pl.edu.agh.szia.server.agent.user.SellerAgent", new Object[] { user, itemName, endTime });
             ag.start();
         } catch (StaleProxyException e) {
             e.printStackTrace();
         }
     }
 
-    private void createBuyerAgent(BigDecimal limit){
+    private void createBuyerAgent(User user, BigDecimal limit){
         try {
-            AgentController ag = mainContainer.createNewAgent(currentUser.getUsername() + currentAuctionId.toString(),
-                    "pl.edu.agh.szia.server.agent.user.BuyerAgent", new Object[] {currentAuction, limit});
+            AgentController ag = mainContainer.createNewAgent(user.getUsername() + user.getActiveAuction().getId().toString(),
+                    "pl.edu.agh.szia.server.agent.user.BuyerAgent", new Object[] { user.getActiveAuction(), limit });
             ag.start();
         } catch (StaleProxyException e) {
             e.printStackTrace();
