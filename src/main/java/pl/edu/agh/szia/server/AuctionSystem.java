@@ -8,6 +8,7 @@ import jade.wrapper.StaleProxyException;
 import pl.edu.agh.szia.server.auction.Auction;
 import pl.edu.agh.szia.data.Product;
 import pl.edu.agh.szia.data.User;
+import pl.edu.agh.szia.utils.Configuration;
 
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -18,6 +19,8 @@ import java.util.Map;
 import java.util.Scanner;
 
 public class AuctionSystem {
+    private static final String SERVER_AGENT_PATH = "pl.edu.agh.szia.server.agent.server.ServerAgent";
+
     private static ContainerController mainContainer;
     private static User currentUser;
     private static Map<String, User> users = new HashMap<>();
@@ -31,63 +34,12 @@ public class AuctionSystem {
         jade.core.Runtime runtime = jade.core.Runtime.instance();
         Profile profile = new ProfileImpl();
         mainContainer = runtime.createMainContainer(profile);
-
-        boolean quit = false;
-
-        while (!quit) {
-            boolean interactive = false;
-
-            printMenu();
-
-            Scanner reader = new Scanner(System.in);
-            String[] input = reader.nextLine().split(" ");
-
-            if (input.length == 1) {
-                interactive = true;
-            }
-
-            switch (input[0].toLowerCase()) {
-                case "c":
-                    if(currentUser == null){
-                        System.out.println("You have to login first");
-                        break;
-                    }
-
-                    if(interactive)
-                        createAuctionInteractive();
-                    break;
-                case "b":
-                    if(interactive)
-                        bidInteractive();
-                    break;
-                case "l":
-                    if(interactive)
-                        currentUser = loginInteractive();
-                    break;
-                case "la":
-                    listAuctions();
-                    break;
-                case "sa":
-                    setCurrentAuction();
-                    break;
-                case "q":
-                    quit = true;
-                    System.out.println("Bye");
-                    break;
-                default:
-                    System.out.println("Unrecognized option");
-            }
+        try {
+            AgentController agentController = mainContainer.createNewAgent(Configuration.SERVER_AGENT_NAME, SERVER_AGENT_PATH, null);
+            agentController.start();
+        } catch (StaleProxyException e) {
+            e.printStackTrace();
         }
-    }
-
-    public static void printMenu(){
-        System.out.println("Choose option: \n" +
-                        "c - create auction \n" +
-                        "b - bid \n" +
-                        "l - login \n" +
-                        "la - list auctions \n" +
-                        "sa - set current auction \n" +
-                        "q - quit");
     }
 
     public static void createAuctionInteractive(){
@@ -115,27 +67,11 @@ public class AuctionSystem {
         try {
             currentAuction = new Auction(null, new Product(itemName), new BigDecimal(1), newAuctionID, endTime);
             AgentController ag = mainContainer.createNewAgent("sellerAgent" + newAuctionID,
-                    "pl.edu.agh.szia.server.agent.SellerAgent", new Object[] {currentUser, itemName, currentAuction, endTime});
+                    "pl.edu.agh.szia.server.agent.user.SellerAgent", new Object[] {currentUser, itemName, currentAuction, endTime});
             ag.start();
         } catch (StaleProxyException e) {
             e.printStackTrace();
         }
-    }
-
-    public static User loginInteractive(){
-        System.out.println("Enter username: ");
-        Scanner reader = new Scanner(System.in);
-        String username = reader.nextLine();
-
-        if(users.get(username) != null) {
-            System.out.println("Welcome back " + username);
-            return users.get(username);
-        }
-
-        System.out.println("Welcome new user: " + username);
-        User newUser = new User(username);
-        users.put(username, newUser);
-        return newUser;
     }
 
     public static void bidInteractive(){
@@ -149,7 +85,7 @@ public class AuctionSystem {
     public static void createBuyerAgent(BigDecimal limit){
         try {
             AgentController ag = mainContainer.createNewAgent(currentUser.getUsername() + currentAuctionId.toString(),
-                    "pl.edu.agh.szia.server.agent.BuyerAgent", new Object[] {currentAuction, limit});
+                    "pl.edu.agh.szia.server.agent.user.BuyerAgent", new Object[] {currentAuction, limit});
             ag.start();
         } catch (StaleProxyException e) {
             e.printStackTrace();
