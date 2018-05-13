@@ -2,5 +2,8 @@ package pl.edu.agh.szia.utils.command;
 
 public enum CommandType {
     SIGN_IN,
-    LIST_AUCTIONS
+    CREATE_AUCTION,
+    BID,
+    LIST_AUCTIONS,
+    SET_CURRENT_AUCTION
 }

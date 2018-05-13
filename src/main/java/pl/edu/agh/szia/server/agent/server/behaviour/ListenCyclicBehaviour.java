@@ -38,7 +38,13 @@ public class ListenCyclicBehaviour extends CyclicBehaviour {
             switch (commandMessage.getType()) {
                 case SIGN_IN:
                     break;
+                case CREATE_AUCTION:
+                    break;
+                case BID:
+                    break;
                 case LIST_AUCTIONS:
+                    break;
+                case SET_CURRENT_AUCTION:
                     break;
                 default:
                     break;
