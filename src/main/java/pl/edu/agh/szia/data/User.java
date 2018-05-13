@@ -1,7 +1,7 @@
 package pl.edu.agh.szia.data;
 
 import jade.core.AID;
-import pl.edu.agh.szia.auction.Auction;
+import pl.edu.agh.szia.server.auction.Auction;
 
 import java.util.HashMap;
 import java.util.Map;

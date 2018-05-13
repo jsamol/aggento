@@ -1,6 +1,6 @@
-package pl.edu.agh.szia.utils;
+package pl.edu.agh.szia.server.utils;
 
-import pl.edu.agh.szia.auction.Auction;
+import pl.edu.agh.szia.server.auction.Auction;
 
 import java.util.ArrayList;
 import java.util.List;

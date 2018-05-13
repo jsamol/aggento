@@ -1,10 +1,10 @@
-package pl.edu.agh.szia.agent;
+package pl.edu.agh.szia.server.agent;
 
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
-import pl.edu.agh.szia.auction.Auction;
+import pl.edu.agh.szia.server.auction.Auction;
 
 import java.math.BigDecimal;
 

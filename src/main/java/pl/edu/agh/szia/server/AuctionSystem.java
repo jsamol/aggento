@@ -1,11 +1,11 @@
-package pl.edu.agh.szia;
+package pl.edu.agh.szia.server;
 
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
-import pl.edu.agh.szia.auction.Auction;
+import pl.edu.agh.szia.server.auction.Auction;
 import pl.edu.agh.szia.data.Product;
 import pl.edu.agh.szia.data.User;
 
@@ -115,7 +115,7 @@ public class AuctionSystem {
         try {
             currentAuction = new Auction(null, new Product(itemName), new BigDecimal(1), newAuctionID, endTime);
             AgentController ag = mainContainer.createNewAgent("sellerAgent" + newAuctionID,
-                    "pl.edu.agh.szia.agent.SellerAgent", new Object[] {currentUser, itemName, currentAuction, endTime});
+                    "pl.edu.agh.szia.server.agent.SellerAgent", new Object[] {currentUser, itemName, currentAuction, endTime});
             ag.start();
         } catch (StaleProxyException e) {
             e.printStackTrace();
@@ -149,7 +149,7 @@ public class AuctionSystem {
     public static void createBuyerAgent(BigDecimal limit){
         try {
             AgentController ag = mainContainer.createNewAgent(currentUser.getUsername() + currentAuctionId.toString(),
-                    "pl.edu.agh.szia.agent.BuyerAgent", new Object[] {currentAuction, limit});
+                    "pl.edu.agh.szia.server.agent.BuyerAgent", new Object[] {currentAuction, limit});
             ag.start();
         } catch (StaleProxyException e) {
             e.printStackTrace();

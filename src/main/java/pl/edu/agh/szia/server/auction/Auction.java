@@ -1,10 +1,9 @@
-package pl.edu.agh.szia.auction;
+package pl.edu.agh.szia.server.auction;
 
 import jade.core.AID;
 import pl.edu.agh.szia.data.Product;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;

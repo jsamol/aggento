@@ -1,4 +1,4 @@
-package pl.edu.agh.szia.agent;
+package pl.edu.agh.szia.server.agent;
 
 import jade.core.AID;
 import jade.core.Agent;
@@ -7,15 +7,11 @@ import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.WakerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
-import pl.edu.agh.szia.auction.Auction;
-import pl.edu.agh.szia.data.Product;
+import pl.edu.agh.szia.server.auction.Auction;
 import pl.edu.agh.szia.data.User;
 
-import javax.print.attribute.standard.MediaSize;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.sql.Timestamp;
-import java.util.Iterator;
 
 public class SellerAgent extends UserAgent {
 
