@@ -27,6 +27,7 @@ public class ConsoleCyclicBehaviour extends CyclicBehaviour {
     public void onStart() {
         super.onStart();
         signInWithUsername();
+        subscribe();
     }
 
     @Override
@@ -61,6 +62,7 @@ public class ConsoleCyclicBehaviour extends CyclicBehaviour {
                 break;
             case "q":
                 ConsoleUtil.printExitMessage();
+                unsubscribe();
                 killContainer(); // TODO: improve system termination
             default:
                 ConsoleUtil.printUnrecognizedCommandMessage();
@@ -116,6 +118,34 @@ public class ConsoleCyclicBehaviour extends CyclicBehaviour {
         try {
             message.setContentObject(commandMessage);
             sendMessage(message);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+    private void unsubscribe() {
+        try {
+            final ACLMessage message = new ACLMessage(ACLMessage.REQUEST);
+            final CommandMessage commandMessage = new CommandMessage(CommandType.UNSUBSCRIBE, clientUsername);
+            message.setContentObject(commandMessage);
+            message.addReceiver(serverAid);
+            myAgent.send(message);
+            waitForResponse();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    //todo implement properly
+    private void subscribe() {
+        try {
+            final ACLMessage message = new ACLMessage(ACLMessage.REQUEST);
+            final CommandMessage commandMessage = new CommandMessage(CommandType.SUBSCRIBE, clientUsername);
+            message.setContentObject(commandMessage);
+            message.addReceiver(serverAid);
+            myAgent.send(message);
         } catch (IOException e) {
             e.printStackTrace();
         }

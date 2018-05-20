@@ -5,5 +5,7 @@ public enum CommandType {
     CREATE_AUCTION,
     BID,
     LIST_AUCTIONS,
-    SET_ACTIVE_AUCTION
+    SET_ACTIVE_AUCTION,
+    SUBSCRIBE,
+    UNSUBSCRIBE
 }

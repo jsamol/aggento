@@ -34,6 +34,7 @@ public class AuctionSystem {
     private ContainerController mainContainer;
     private Map<String, User> users = new HashMap<>();
     private Map<Integer, Auction> auctions = new HashMap<>();
+    private Map<String, String> subscribers = new HashMap<>();
     private Integer newAuctionID = 1;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -151,6 +152,32 @@ public class AuctionSystem {
 
         return response;
     }
+
+    //todo implement properly
+    public ACLMessage addSubscriber(String username) {
+        final ACLMessage response;
+
+        response = new ACLMessage(ACLMessage.CONFIRM);
+        response.setContent("OK");
+        subscribers.put(username, username);
+        System.out.println("Currently subscribing:");
+        System.out.println(subscribers);
+        return response;
+    }
+
+    //todo implement properly
+    public ACLMessage removeSubscriber(String username) {
+        final ACLMessage response;
+
+        response = new ACLMessage(ACLMessage.CONFIRM);
+        response.setContent("OK");
+        subscribers.remove(username);
+        System.out.println("Currently subscribing:");
+        System.out.println(subscribers);
+        return response;
+    }
+
+
 
     private void createSellerAgent(User user, String itemName, Long endTime){
         try {

@@ -63,6 +63,16 @@ public class ListenCyclicBehaviour extends CyclicBehaviour {
                         break;
                     }
                     return auctionSystem.setActiveAuction(args[0], args[1]);
+                case SUBSCRIBE:
+                    if (args.length < 1) {
+                        break;
+                    }
+                    return auctionSystem.addSubscriber(args[0]);
+                case UNSUBSCRIBE:
+                    if (args.length < 1) {
+                        break;
+                    }
+                    return auctionSystem.removeSubscriber(args[0]);
             }
         }
 
