@@ -3,6 +3,7 @@ package pl.edu.agh.szia.client.agent.behaviour;
 import jade.core.AID;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.UnreadableException;
 import jade.wrapper.StaleProxyException;
 import pl.edu.agh.szia.client.utils.ConsoleUtil;
 import pl.edu.agh.szia.utils.Configuration;
@@ -10,13 +11,16 @@ import pl.edu.agh.szia.utils.command.CommandMessage;
 import pl.edu.agh.szia.utils.command.CommandType;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.Scanner;
+import java.util.concurrent.*;
 
 public class ConsoleCyclicBehaviour extends CyclicBehaviour {
 
     private final AID serverAid;
     private String clientUsername;
+
+    private ScheduledExecutorService pollExecutor = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledFuture<?> scheduledPoll;
 
     public ConsoleCyclicBehaviour(String clientUsername) {
         this.clientUsername = clientUsername;
@@ -104,6 +108,12 @@ public class ConsoleCyclicBehaviour extends CyclicBehaviour {
         appendMessageWithCommandMessageAndSend(message, commandMessage);
     }
 
+    private void pollNotifications() {
+        final  ACLMessage message = new ACLMessage(ACLMessage.REQUEST);
+        final CommandMessage commandMessage = new CommandMessage(CommandType.POLL, clientUsername);
+        appendMessageWithCommandMessageAndSend(message, commandMessage);
+    }
+
     private void setActiveAuction() {
         System.out.println("Please enter auction id: ");
         Scanner reader = new Scanner(System.in);
@@ -124,7 +134,6 @@ public class ConsoleCyclicBehaviour extends CyclicBehaviour {
     }
 
 
-
     private void unsubscribe() {
         try {
             final ACLMessage message = new ACLMessage(ACLMessage.REQUEST);
@@ -133,19 +142,21 @@ public class ConsoleCyclicBehaviour extends CyclicBehaviour {
             message.addReceiver(serverAid);
             myAgent.send(message);
             waitForResponse();
+            scheduledPoll.cancel(true);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    //todo implement properly
     private void subscribe() {
         try {
             final ACLMessage message = new ACLMessage(ACLMessage.REQUEST);
-            final CommandMessage commandMessage = new CommandMessage(CommandType.SUBSCRIBE, clientUsername);
+            final CommandMessage commandMessage = new CommandMessage(CommandType.POLL, clientUsername);
             message.setContentObject(commandMessage);
             message.addReceiver(serverAid);
             myAgent.send(message);
+            waitForResponse();
+            scheduledPoll = pollExecutor.scheduleAtFixedRate(this::pollNotifications, 1, 1, TimeUnit.SECONDS);
         } catch (IOException e) {
             e.printStackTrace();
         }

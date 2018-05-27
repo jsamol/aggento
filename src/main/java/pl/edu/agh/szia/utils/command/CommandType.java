@@ -7,5 +7,6 @@ public enum CommandType {
     LIST_AUCTIONS,
     SET_ACTIVE_AUCTION,
     SUBSCRIBE,
-    UNSUBSCRIBE
+    UNSUBSCRIBE,
+    POLL,
 }

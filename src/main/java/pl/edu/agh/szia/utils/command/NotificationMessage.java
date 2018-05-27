@@ -18,4 +18,12 @@ public class NotificationMessage implements Serializable {
     public String getMessage() {
         return message;
     }
+
+    @Override
+    public String toString() {
+        return "NotificationMessage{" +
+                "type=" + type +
+                ", message='" + message + '\'' +
+                '}';
+    }
 }
