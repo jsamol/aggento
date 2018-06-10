@@ -10,14 +10,15 @@ import pl.edu.agh.szia.server.auction.Auction;
 import pl.edu.agh.szia.data.Product;
 import pl.edu.agh.szia.data.User;
 import pl.edu.agh.szia.utils.Configuration;
+import pl.edu.agh.szia.utils.command.NotificationMessage;
+import pl.edu.agh.szia.utils.command.NotificationType;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class AuctionSystem {
     private static final String SERVER_AGENT_PATH = "pl.edu.agh.szia.server.agent.server.ServerAgent";
@@ -34,10 +35,12 @@ public class AuctionSystem {
     private ContainerController mainContainer;
     private Map<String, User> users = new HashMap<>();
     private Map<Integer, Auction> auctions = new HashMap<>();
+    //contains list of all messages that can be consumed by the client
+    private Map<String, List<NotificationMessage>> subscribers = new ConcurrentHashMap<>();
     private Integer newAuctionID = 1;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    public static void main(String [] args){
+    public static void main(String[] args) {
         AuctionSystem auctionSystem = new AuctionSystem();
         auctionSystem.run();
     }
@@ -47,7 +50,7 @@ public class AuctionSystem {
         Profile profile = new ProfileImpl();
         mainContainer = runtime.createMainContainer(profile);
         try {
-            AgentController agentController = mainContainer.createNewAgent(Configuration.SERVER_AGENT_NAME, SERVER_AGENT_PATH, new Object[] { this });
+            AgentController agentController = mainContainer.createNewAgent(Configuration.SERVER_AGENT_NAME, SERVER_AGENT_PATH, new Object[]{this});
             agentController.start();
         } catch (StaleProxyException e) {
             e.printStackTrace();
@@ -70,7 +73,7 @@ public class AuctionSystem {
         return response;
     }
 
-    public ACLMessage createAuction(String username, String itemName, String endDateStr){
+    public ACLMessage createAuction(String username, String itemName, String endDateStr) {
         if (users.containsKey(username)) {
             try {
                 User currentUser = users.get(username);
@@ -85,7 +88,12 @@ public class AuctionSystem {
 
                 createSellerAgent(currentUser, itemName, endTime);
                 newAuctionID += 1;
-
+                subscribers.forEach((a, ns) ->
+                        ns.add(new NotificationMessage(
+                                NotificationType.AUCTION_CREATED,
+                                String.format("item name: %s, endDate: %s", itemName, endDateStr))
+                        )
+                );
                 final ACLMessage response = new ACLMessage(ACLMessage.CONFIRM);
                 response.setContent(AUCTION_CREATED);
                 return response;
@@ -99,16 +107,20 @@ public class AuctionSystem {
         return response;
     }
 
-    public ACLMessage bid(String username, String limit){
+    public ACLMessage bid(String username, String limit) {
         final ACLMessage response;
         if (!users.containsKey(username)) {
             response = new ACLMessage(ACLMessage.CANCEL);
             response.setContent(USER_DOES_NOT_EXIST);
-        }
-        else {
+        } else {
             User currentUser = users.get(username);
             createBuyerAgent(currentUser, new BigDecimal(limit));
-
+            String bidMessage =
+                    String.format("User %s is bidding in auction for %s", username, currentUser.getActiveAuction().getProduct().getName());
+            subscribers.entrySet().stream().filter(s ->
+                    Objects.equals(users.get(s.getKey()).getActiveAuction().getId(), currentUser.getActiveAuction().getId()))
+                    .forEach(e ->
+                            e.getValue().add(new NotificationMessage(NotificationType.BID, bidMessage)));
             response = new ACLMessage(ACLMessage.CONFIRM);
             response.setContent(AUCTION_BID_SUCCESSFUL);
         }
@@ -118,7 +130,7 @@ public class AuctionSystem {
 
     public ACLMessage listAuctions() {
         StringBuilder stringBuilder = new StringBuilder();
-        for(Auction auction: auctions.values()){
+        for (Auction auction : auctions.values()) {
             stringBuilder.append(auction);
         }
 
@@ -128,7 +140,7 @@ public class AuctionSystem {
         return response;
     }
 
-    public ACLMessage setActiveAuction(String username, String auctionId){
+    public ACLMessage setActiveAuction(String username, String auctionId) {
         final ACLMessage response;
 
         int currentAuctionId = Integer.parseInt(auctionId);
@@ -152,20 +164,46 @@ public class AuctionSystem {
         return response;
     }
 
-    private void createSellerAgent(User user, String itemName, Long endTime){
+    public ACLMessage subscribe(String agent) {
+        subscribers.putIfAbsent(agent, new LinkedList<>());
+        final ACLMessage response = new ACLMessage(ACLMessage.CONFIRM);
+        response.setContent("Subscribed");
+        return response;
+    }
+
+    public ACLMessage unsubscribe(String agent) {
+        subscribers.remove(agent);
+        final ACLMessage response = new ACLMessage(ACLMessage.CONFIRM);
+        response.setContent("Unsubscribed");
+        return response;
+    }
+
+    public ACLMessage getMessages(String agent) {
+        List<NotificationMessage> messages;
+        synchronized (this) {
+            messages = subscribers.getOrDefault(agent, Collections.emptyList());
+            subscribers.put(agent, new LinkedList<>());
+        }
+        final ACLMessage response = new ACLMessage(ACLMessage.INFORM);
+        response.setContent(messages.toString());
+        return response;
+    }
+
+
+    private void createSellerAgent(User user, String itemName, Long endTime) {
         try {
             AgentController ag = mainContainer.createNewAgent("sellerAgent" + newAuctionID,
-                    "pl.edu.agh.szia.server.agent.user.SellerAgent", new Object[] { user, itemName, endTime });
+                    "pl.edu.agh.szia.server.agent.user.SellerAgent", new Object[]{user, itemName, endTime});
             ag.start();
         } catch (StaleProxyException e) {
             e.printStackTrace();
         }
     }
 
-    private void createBuyerAgent(User user, BigDecimal limit){
+    private void createBuyerAgent(User user, BigDecimal limit) {
         try {
             AgentController ag = mainContainer.createNewAgent(user.getUsername() + user.getActiveAuction().getId().toString(),
-                    "pl.edu.agh.szia.server.agent.user.BuyerAgent", new Object[] { user.getActiveAuction(), limit });
+                    "pl.edu.agh.szia.server.agent.user.BuyerAgent", new Object[]{user.getActiveAuction(), limit});
             ag.start();
         } catch (StaleProxyException e) {
             e.printStackTrace();

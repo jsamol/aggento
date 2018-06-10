@@ -13,4 +13,5 @@ public class Configuration {
     public static String getClientAgentName(String username) {
         return String.format(CLIENT_AGENT_NAME_PATTERN, username);
     }
+
 }

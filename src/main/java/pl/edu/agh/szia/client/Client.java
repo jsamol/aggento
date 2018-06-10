@@ -5,6 +5,7 @@ import jade.core.Runtime;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
+import pl.edu.agh.szia.client.agent.ClientAgent;
 import pl.edu.agh.szia.client.utils.ConsoleUtil;
 import pl.edu.agh.szia.utils.Configuration;
 
@@ -12,6 +13,7 @@ import java.util.Scanner;
 
 public class Client {
     private static final String CLIENT_AGENT_PATH = "pl.edu.agh.szia.client.agent.ClientAgent";
+    private static final String NOTIFICATION_AGENT_PATH = "pl.edu.agh.szia.client.agent.NotificationAgent";
 
     private final ContainerController containerController;
     private String username;
