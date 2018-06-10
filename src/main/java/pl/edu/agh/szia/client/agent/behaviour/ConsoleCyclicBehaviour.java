@@ -11,6 +11,7 @@ import pl.edu.agh.szia.utils.command.CommandMessage;
 import pl.edu.agh.szia.utils.command.CommandType;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Scanner;
 import java.util.concurrent.*;
 
@@ -172,7 +173,9 @@ public class ConsoleCyclicBehaviour extends CyclicBehaviour {
         ACLMessage response = myAgent.blockingReceive();
         if (response != null) {
             String responseContent = response.getContent();
-            System.out.println(responseContent);
+            if (!Objects.equals(responseContent, "[]")) {
+                System.out.println(responseContent);
+            }
         }
     }
 
